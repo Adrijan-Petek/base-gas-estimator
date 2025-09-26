@@ -1,31 +1,38 @@
+// scripts/estimateGas.js
 import { ethers } from "ethers";
+import dotenv from "dotenv";
 
-const BASE_RPC = "https://mainnet.base.org"; // Base mainnet RPC
+dotenv.config();
+
+// Base RPC (Mainnet or Sepolia)
+const BASE_RPC = process.env.BASE_RPC || "https://mainnet.base.org";
 const provider = new ethers.JsonRpcProvider(BASE_RPC);
 
-async function estimateGasPrice() {
-  const latestBlock = await provider.getBlock("latest");
-  const numBlocks = 10;
-  let gasPrices = [];
+async function estimateGas() {
+  try {
+    // Fetch latest block
+    const block = await provider.getBlock("latest");
 
-  for (let i = 0; i < numBlocks; i++) {
-    const block = await provider.getBlock(latestBlock.number - i);
-    if (block && block.transactions) {
-      for (const txHash of block.transactions) {
-        const tx = await provider.getTransaction(txHash);
-        if (tx && tx.gasPrice) gasPrices.push(Number(tx.gasPrice));
-      }
+    if (!block || !block.baseFeePerGas) {
+      console.log("Could not fetch base fee. Using fallback 0 wei.");
+      return;
     }
+
+    // Base fee per gas (EIP-1559)
+    const baseFee = block.baseFeePerGas;
+
+    // Optional: add a tip multiplier (e.g., 1.1 for faster inclusion)
+    const recommendedGasPrice = baseFee.mul(110).div(100);
+
+    console.log("=== Base Gas Estimator ===");
+    console.log("Base Fee (wei):", baseFee.toString());
+    console.log("Recommended Gas Price (wei, 10% tip):", recommendedGasPrice.toString());
+
+    return recommendedGasPrice;
+  } catch (err) {
+    console.error("Error estimating gas:", err);
   }
-
-  gasPrices.sort((a, b) => a - b);
-  const mid = Math.floor(gasPrices.length / 2);
-  const median = gasPrices.length % 2 === 0
-    ? (gasPrices[mid - 1] + gasPrices[mid]) / 2
-    : gasPrices[mid];
-
-  console.log("Recommended Gas Price (wei):", median);
-  return median;
 }
 
-estimateGasPrice();
+// Run the estimator
+estimateGas();
