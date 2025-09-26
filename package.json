@@ -1,0 +1,13 @@
+{
+  "name": "base-gas-estimator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "estimate": "node scripts/estimateGas.js"
+  },
+  "dependencies": {
+    "ethers": "^6.9.0",
+    "dotenv": "^16.3.1"
+  }
+}
